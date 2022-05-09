@@ -34,6 +34,11 @@ NUM_OF_EMOJIS = len(emojis_prefixes)
 FIRST_LINE = 53
 SECOND_PARA_FIRST_LINE = 76
 
+NB_BOOKMARK_SCRIPT = """
+        let s = document.createElement('script');
+        s.src= 'https://127.0.0.1:3001/js/bundle.js';
+        document.body.append(s);
+      """
 
 def add_comment_with_emojis(xpath, comment_content="", emojis_prefix=[], is_first_comment=True):
     """
@@ -139,8 +144,16 @@ def setup():
     driver.find_element(
         by="xpath", value="//*[@id='app']/div/div/div[1]/div[2]/div[1]").click()
     driver.find_element(
-        by="xpath", value="//*[@id='vgt-table']/tbody/tr[1]/td[2]/span/a").click()
-    sleep(5)
+        by="xpath", value="//*[@id='vgt-table']/tbody/tr[2]/td[2]/span/a").click() 
+
+    driver.execute_script(NB_BOOKMARK_SCRIPT)
+    sleep(1)
+    # ================ connection =====================
+    input = driver.find_element(by="id", value="login-username")
+    input.send_keys("test")
+    input = driver.find_element(by="id", value="login-password")
+    input.send_keys("123456")
+    input.send_keys(Keys.ENTER)
 
 
 def enter_emoji_heatmap_mode():
@@ -192,7 +205,7 @@ def delete_all_comments():
             driver.find_element(
                 by="xpath", value="//*[@id='nb-sidebar']/div[5]/div[2]/div/div[1]/div/div").click()
             driver.find_element(
-                by="xpath", value="/html/body/div[2]/div[2]/div/div[1]/div[1]/div/div[3]").click()
+                by="xpath", value="/html/body/div[4]/div[2]/div/div[1]/div[1]/div/div[3]").click()
 
             # driver.find_element(
             #     by="xpath", value=" //*[@id='popover_7we9qzpkc8']/div/div[1]/div[1]/div/div[3]").click()
