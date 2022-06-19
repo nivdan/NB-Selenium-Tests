@@ -1,6 +1,8 @@
 # pip install webdriver-manager
 from audioop import add
+from shutil import ExecError
 from time import sleep
+from urllib.request import AbstractDigestAuthHandler
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -90,7 +92,7 @@ def add_subset_of_the_emojis(emojis_subset_size, from_line, to_line):
                 j) + "]", emojis_prefix=[emojis_prefixes[i]], is_first_comment=is_first_comment)
             i = i + 1
 
-def populate_func(emojis_subset_size, from_line, to_line, page):
+def populate_func(from_line, to_line, page):
     # random number of comments in each line (1-5)
     # random number of emojis in each line (1-3)
     
@@ -130,7 +132,7 @@ def setup():
 
     # ================ connection =====================
     input = driver.find_element(by="id", value="login-username")
-    input.send_keys("test")
+    input.send_keys("test_a")
     input = driver.find_element(by="id", value="login-password")
     input.send_keys("123456")
     input.send_keys(Keys.ENTER)
@@ -142,6 +144,25 @@ def setup():
         by="xpath", value="//*[@id='vgt-table']/tbody/tr[1]/td[2]/span/a").click()
     sleep(5)
 
+
+def toggle_paragraph_statistics():
+    """
+    :return: void
+    This function is used to show/hide paragraph statistics by clicking the relevant button.
+    """
+    try:
+        driver.find_element(
+            by='xpath', value="//*[@id='nb-sidebar']/div[5]/button").click()
+    except Exception as e:
+        driver.find_element(
+            by='xpath', value="//*[@id='nb-sidebar']/div[6]/button").click()
+
+def reset_paragraph_statistics():
+    """
+    :return: void
+    This function is used to reset the accumulated statistics
+    """
+    driver.find_element(by='xpath', value='//*[@id="nb-sidebar"]/div[8]/button').click()
 
 def enter_emoji_heatmap_mode():
     """
@@ -242,29 +263,41 @@ def go_throw_all_emoji_filters_one_by_one(sleep_time_between_filters):
     :param sleep_time_between_filters: boolean flag which we use
     :return: void
     This function is used to check the heatmap with different emojis filters.
-    It filter the comments based on all the emojis, one by one with option to wait @sleep_time_between_filters
+    First it check Clear-all and Select-all buttons 
+    Then it filter the comments based on all the emojis, one by one with option to wait @sleep_time_between_filters
     seconds in between.
     """
     driver.find_element(
         by="xpath", value="//*[@id='nb-sidebar']/div[2]/div/div[2]/div").click()
+    driver.find_element(
+        by="xpath", value="/html/body/div[2]/div[2]/div/div[1]/div[1]/div/button[1]").click()
+    driver.find_element(
+        by="xpath", value="/html/body/div[2]/div[2]/div/div[1]/div[1]/div/button[2]").click()
+
     for emoji_hash in emojis_hashes:
         driver.find_element(
             by="xpath", value="//*[@id='filter-hashtag-" + emoji_hash + "']").click()
         sleep(sleep_time_between_filters)
         driver.find_element(
             by="xpath", value="//*[@id='filter-hashtag-" + emoji_hash + "']").click()
+    #clicking also the filter for threads without any emoji(outside of the loop ofcourse)
+    driver.find_element(
+        by="xpath", value="//*[@id='threads-without-emojis']").click()
+    sleep(sleep_time_between_filters)
+    driver.find_element(
+        by="xpath", value="//*[@id='threads-without-emojis']").click()
     driver.find_element(
         by="xpath", value="//*[@id='viewer']/div[1]/div[2]").click()
     sleep(sleep_time_between_filters)
 
 
 class TestNB(unittest.TestCase):
-    # @timeit
-    # def test_AA_populate_with_comments(self):
-    #     enter_emoji_heatmap_mode()
-    #     for i in range(2,8):
-    #         populate_func(
-    #             NUM_OF_EMOJIS, 80, 91, i)
+    @timeit
+    def test_AA_populate_with_comments(self):
+        enter_emoji_heatmap_mode()
+        for i in range(1,9): #1-12
+            populate_func(
+                77, 88, i) #77-88
 
     @timeit
     def test_A_toggle_between_heatmap_modes(self):
@@ -354,73 +387,105 @@ class TestNB(unittest.TestCase):
                                     "This is a comment with " + str(i) + " emojis", emojis_prefix=emojis_prefixes[0:i])
         # sleep(3)
 
-    # @timeit
-    # def test_H_add_comment_without_emojis(self):
-    #     """
-    #     :return: void
-    #     basic test which adds comment without emojis
-    #     """
-    #     enter_default_heatmap_mode()
-    #     add_comment_with_emojis(
-    #         "//*[@id='viewer']/div[1]/div[2]/span[82]", "This is a comment without emojis")
-    #     # sleep(3)
+    @timeit
+    def test_H_add_comment_without_emojis(self):
+        """
+        :return: void
+        basic test which adds comment without emojis
+        """
+        enter_default_heatmap_mode()
+        add_comment_with_emojis(
+            "//*[@id='viewer']/div[1]/div[2]/span[82]", "This is a comment without emojis")
+        # sleep(3)
 
-    # @timeit
-    # def test_I_add_comment_go_page_back_and_return(self):
-    #     """
-    #     :return: void
-    #     Test is adding 1 comment, then go page back and page foreword to check that the comment still exists
-    #     """
-    #     enter_default_heatmap_mode()
-    #     add_comment_with_emojis(
-    #         "//*[@id='viewer']/div[1]/div[2]/span[77]", "This is a comment without emojis")
-    #     driver.back()
-    #     driver.find_element(
-    #         by="xpath", value="//*[@id='vgt-table']/tbody/tr[1]/td[2]/span/a").click()
-    #     # sleep(3)
+    @timeit
+    def test_I_add_comment_go_page_back_and_return(self):
+        """
+        :return: void
+        Test is adding 1 comment, then go page back and page foreword to check that the comment still exists
+        """
+        enter_default_heatmap_mode()
+        add_comment_with_emojis(
+            "//*[@id='viewer']/div[1]/div[2]/span[77]", "This is a comment without emojis")
+        driver.back()
+        driver.find_element(
+            by="xpath", value="//*[@id='vgt-table']/tbody/tr[1]/td[2]/span/a").click()
+        # sleep(3)
 
-    # @timeit
-    # def test_J_add_3_comments_to_3_different_lines_then_toggle_heatmap_twice(self):
-    #     """
-    #     :return: void
-    #     Test add 3 comments to 3 different lines and the toggle heatmap mode twice
-    #     """
-    #     enter_default_heatmap_mode()
-    #     add_x_comments_to_y_different_lines(3, 3)
-    #     hide_and_show_heatmap()
+    @timeit
+    def test_J_add_3_comments_to_3_different_lines_then_toggle_heatmap_twice(self):
+        """
+        :return: void
+        Test add 3 comments to 3 different lines and the toggle heatmap mode twice
+        """
+        enter_default_heatmap_mode()
+        add_x_comments_to_y_different_lines(3, 3)
+        hide_and_show_heatmap()
 
-    # @timeit
-    # def test_K_add_3_comments_to_10_different_lines(self):
-    #     """
-    #     :return: void
-    #     Test add 3 comments to 10 different lines (performance check)
-    #     """
-    #     add_x_comments_to_y_different_lines(3, 10)
-    #     driver.execute_script(
-    #         "window.scrollTo(0,document.body.scrollHeight)")
+    @timeit
+    def test_K_add_3_comments_to_10_different_lines(self):
+        """
+        :return: void
+        Test add 3 comments to 10 different lines (performance check)
+        """
+        add_x_comments_to_y_different_lines(3, 10)
+        driver.execute_script(
+            "window.scrollTo(0,document.body.scrollHeight)")
 
-    # @timeit
-    # def test_L_add_10_comments_to_10_different_lines_and_scroll_to_bottom(self):
-    #     """
-    #     :return: void
-    #     Test add 10 comments to 10 different lines and then scroll the page to the bottom(performance check)
-    #     """
-    #     add_x_comments_to_y_different_lines(10, 10)
-    #     driver.execute_script(
-    #         "window.scrollTo(0,document.body.scrollHeight)")
+    @timeit
+    def test_L_add_10_comments_to_10_different_lines_and_scroll_to_bottom(self):
+        """
+        :return: void
+        Test add 10 comments to 10 different lines and then scroll the page to the bottom(performance check)
+        """
+        add_x_comments_to_y_different_lines(10, 10)
+        driver.execute_script(
+            "window.scrollTo(0,document.body.scrollHeight)")
 
-    # @timeit
-    # def test_M_stress_1000_comments_same_line(self):
-    #     """
-    #     :return: void
-    #     Test add 1000 comments to FIRST_LINE (performance check)
-    #     """
-    #     add_comment_with_emojis(
-    #         xpath="//*[@id='viewer']/div[1]/div[2]/span[67]", comment_content="comment")
-    #     for i in range(1000):
-    #         add_comment_with_emojis(
-    #             xpath="//*[@id='viewer']/div[1]/div[2]/span[67]", comment_content="comment", is_first_comment=False)
-    #     delete_all_comments()
+    @timeit
+    def test_M_show_hide_paragraph_statistics(self):
+        """
+        :return: void
+        basic test which checks the new button which open/close paragraph statistics,
+        """
+        toggle_paragraph_statistics()
+        sleep(1)
+        toggle_paragraph_statistics()
+
+    @timeit
+    def test_N_check_multi_paragraph_statistics(self):
+        """
+        :return: void
+        test flow: 
+        1.) add some comments
+        2.) open paragraph statistics
+        3.) select some lines(to present statistics)
+        4.) reset
+        5.) close paragraph statistics
+        """
+        enter_emoji_heatmap_mode()
+        populate_func(76, 87, 1)
+        toggle_paragraph_statistics()
+        for i in range(11):
+            line = driver.find_element(by="xpath", value="//*[@id='viewer']/div[1]/div[2]/span[" + str(
+                    SECOND_PARA_FIRST_LINE + i) + "]")
+            actionChains.double_click(line).perform()
+            sleep(2)
+        reset_paragraph_statistics()
+        toggle_paragraph_statistics()
+    
+    @timeit
+    def test_O_stress_1000_comments_same_line(self):
+        """
+        :return: void
+        Test add 1000 comments to FIRST_LINE (performance check)
+        """
+        add_comment_with_emojis(
+            xpath="//*[@id='viewer']/div[1]/div[2]/span[67]", comment_content="comment")
+        for i in range(1000):
+            add_comment_with_emojis(
+                xpath="//*[@id='viewer']/div[1]/div[2]/span[67]", comment_content="comment", is_first_comment=False)
+        delete_all_comments()
 
     def tearDown(self):
         """
